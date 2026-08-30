@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>麻雀 点数計算機</title>
+<style>
+  :root {
+    --table:        #0d3a30;
+    --table-deep:   #072720;
+    --tile:         #f4efe3;
+    --tile-edge:    #cfc6b0;
+    --ink:          #1b1a17;
+    --ink-soft:     #6b675d;
+    --vermilion:    #c8352a;
+    --bamboo:       #2f7d5c;
+    --gold:         #b8934a;
+
+    --font-display: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "MS PMincho", serif;
+    --font-ui:      "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 24px 16px 64px;
+    background: radial-gradient(circle at 50% 0%, var(--table) 0%, var(--table-deep) 100%);
+    background-attachment: fixed;
+    font-family: var(--font-ui);
+    color: var(--tile);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .wrap { max-width: 460px; margin: 0 auto; }
+
+  /* ---- 見出し ---- */
+  .masthead { text-align: center; margin-bottom: 28px; }
+  .masthead h1 {
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    margin: 0;
+    text-indent: 0.22em;
+  }
+  .masthead p {
+    margin: 8px 0 0;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    color: rgba(244,239,227,0.55);
+  }
+
+  /* ---- 入力ブロック ---- */
+  .field { margin-bottom: 22px; }
+  .field-label {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    color: rgba(244,239,227,0.6);
+  }
+  .field-label .hint {
+    letter-spacing: 0;
+    font-size: 11px;
+    color: rgba(244,239,227,0.4);
+  }
+
+  .tiles { display: flex; flex-wrap: wrap; gap: 7px; }
+
+  /* 牌に見立てた選択ボタン */
+  .tile-btn {
+    flex: 1 1 auto;
+    min-width: 44px;
+    padding: 11px 4px 13px;
+    border: none;
+    border-radius: 5px;
+    background: var(--tile);
+    box-shadow: 0 3px 0 var(--tile-edge);
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  .tile-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 0 var(--tile-edge); }
+  .tile-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--tile-edge); }
+  .tile-btn[aria-pressed="true"] {
+    background: var(--vermilion);
+    box-shadow: 0 3px 0 #8f251d;
+    color: var(--tile);
+  }
+  .tile-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+  .tiles.is-muted { opacity: 0.35; }
+
+  /* 2択トグル */
+  .toggles { display: flex; gap: 12px; margin-bottom: 22px; }
+  .toggle {
+    flex: 1;
+    display: flex;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.28);
+  }
+  .toggle button {
+    flex: 1;
+    padding: 13px 0;
+    border: none;
+    background: rgba(244,239,227,0.1);
+    color: rgba(244,239,227,0.65);
+    font-family: var(--font-ui);
+    font-size: 15px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+  }
+  .toggle button[aria-pressed="true"] { background: var(--tile); color: var(--ink); font-weight: 700; }
+  .toggle button:focus-visible { outline: 2px solid var(--gold); outline-offset: -3px; }
+
+  /* ---- 結果 ---- */
+  .result {
+    background: var(--tile);
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 26px 20px 22px;
+    box-shadow: 0 6px 0 var(--tile-edge);
+    text-align: center;
+  }
+  .rank {
+    font-family: var(--font-display);
+    font-size: 15px;
+    letter-spacing: 0.3em;
+    text-indent: 0.3em;
+    color: var(--vermilion);
+    min-height: 20px;
+  }
+  .total {
+    font-family: var(--font-display);
+    font-size: 62px;
+    font-weight: 600;
+    line-height: 1.05;
+    margin: 4px 0 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .total-unit { font-size: 20px; margin-left: 4px; }
+  .formula {
+    font-size: 11px;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 18px;
+  }
+
+  .rows { border-top: 1px solid var(--tile-edge); }
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 13px 2px;
+    border-bottom: 1px solid var(--tile-edge);
+    text-align: left;
+  }
+  .row-label { font-size: 13px; color: var(--ink-soft); white-space: nowrap; }
+  .row-amount { font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* 点棒 */
+  .sticks { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; flex: 1; }
+  .stick {
+    height: 13px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    border: 1px solid rgba(0,0,0,0.22);
+  }
+  .stick i { width: 3px; height: 3px; border-radius: 50%; display: block; }
+  .s10000 { width: 52px; background: var(--gold); }
+  .s10000 i { background: #2b2b2b; }
+  .s5000  { width: 44px; background: #3a4f7a; }
+  .s5000 i { background: #f0e6cf; }
+  .s1000  { width: 36px; background: #f7f3e8; }
+  .s1000 i { background: var(--vermilion); }
+  .s500   { width: 28px; background: #f7f3e8; }
+  .s500 i { background: #3a4f7a; }
+  .s100   { width: 22px; background: #f7f3e8; }
+  .s100 i { background: #2b2b2b; }
+
+  .note {
+    margin-top: 14px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--vermilion);
+    min-height: 0;
+  }
+  .note:empty { display: none; }
+
+  /* 切り上げ満貫 */
+  .option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 18px;
+    font-size: 12px;
+    color: rgba(244,239,227,0.55);
+  }
+  .option input { accent-color: var(--bamboo); width: 16px; height: 16px; }
+  .option label { cursor: pointer; }
+
+  footer {
+    margin-top: 28px;
+    text-align: center;
+    font-size: 11px;
+    line-height: 1.8;
+    color: rgba(244,239,227,0.35);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tile-btn { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <h1>点数計算機</h1>
+    <p>翻数と符から和了点を求める</p>
+  </header>
+
+  <div class="field">
+    <div class="field-label">翻 <span class="hint">HAN</span></div>
+    <div class="tiles" id="hanTiles"></div>
+  </div>
+
+  <div class="field">
+    <div class="field-label">符 <span class="hint" id="fuHint">FU</span></div>
+    <div class="tiles" id="fuTiles"></div>
+  </div>
+
+  <div class="toggles">
+    <div class="toggle" id="seatToggle">
+      <button type="button" data-value="child" aria-pressed="true">子</button>
+      <button type="button" data-value="dealer" aria-pressed="false">親</button>
+    </div>
+    <div class="toggle" id="winToggle">
+      <button type="button" data-value="ron" aria-pressed="true">ロン</button>
+      <button type="button" data-value="tsumo" aria-pressed="false">ツモ</button>
+    </div>
+  </div>
+
+  <section class="result" aria-live="polite">
+    <div class="rank" id="rank"></div>
+    <div class="total"><span id="total">0</span><span class="total-unit">点</span></div>
+    <div class="formula" id="formula"></div>
+    <div class="rows" id="rows"></div>
+    <p class="note" id="note"></p>
+  </section>
+
+  <div class="option">
+    <input type="checkbox" id="kiriage">
+    <label for="kiriage">切り上げ満貫を使う（30符4翻・60符3翻を満貫扱い）</label>
+  </div>
+
+  <footer>
+    基礎点 = 符 × 2<sup>(2+翻)</sup> ／ 支払いは100点単位で切り上げ<br>
+    リーチ棒・本場・積み棒は含みません
+  </footer>
+
+</div>
+
+<script>
+/* =========================================================
+   麻雀 点数計算機
+   翻数・符・親子・ロンツモ の4つの入力から和了点を計算する。
+   ========================================================= */
+
+// ---- 選択肢の定義 ----
+const HAN_LIST = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+const FU_LIST  = [20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 110];
+
+// ---- 現在の入力状態 ----
+const state = {
+  han: 3,
+  fu: 30,
+  isDealer: false,  // true=親, false=子
+  isTsumo: false,   // true=ツモ, false=ロン
+  kiriage: false    // 切り上げ満貫を使うか
+};
+
+// 100点単位で切り上げる（点数計算の基本ルール）
+const ceil100 = (n) => Math.ceil(n / 100) * 100;
+
+/* ---------------------------------------------------------
+   1. 基礎点を求める
+   5翻以上は符に関係なく満貫〜役満の固定値になる。
+   4翻以下は 符 × 2^(2+翻) で計算し、2000点を超えたら満貫止まり。
+   --------------------------------------------------------- */
+function calcBase(han, fu, kiriage) {
+  if (han >= 13) return { base: 8000, rank: '役　満', raw: null };
+  if (han >= 11) return { base: 6000, rank: '三倍満', raw: null };
+  if (han >= 8)  return { base: 4000, rank: '倍　満', raw: null };
+  if (han >= 6)  return { base: 3000, rank: '跳　満', raw: null };
+  if (han === 5) return { base: 2000, rank: '満　貫', raw: null };
+
+  const raw = fu * Math.pow(2, 2 + han);
+
+  if (raw >= 2000) return { base: 2000, rank: '満　貫', raw };
+  if (kiriage && raw === 1920) return { base: 2000, rank: '切り上げ満貫', raw };
+  return { base: raw, rank: '', raw };
+}
+
+/* ---------------------------------------------------------
+   2. 基礎点から実際の支払いを求める
+   ロン  … 子は基礎点×4／親は基礎点×6 を放銃者が全額払う
+   ツモ  … 親は 基礎点×2 を3人から
+           子は 親から基礎点×2、子2人から基礎点×1
+   支払いはそれぞれ100点単位で切り上げる。
+   --------------------------------------------------------- */
+function calcPayment(base, isDealer, isTsumo) {
+  if (!isTsumo) {
+    const amount = ceil100(base * (isDealer ? 6 : 4));
+    return {
+      rows: [{ label: '放銃者から', amount: amount, count: 1 }],
+      total: amount
+    };
+  }
+  if (isDealer) {
+    const each = ceil100(base * 2);
+    return {
+      rows: [{ label: '子 3人から', amount: each, count: 3 }],
+      total: each * 3
+    };
+  }
+  const fromDealer = ceil100(base * 2);
+  const fromChild  = ceil100(base * 1);
+  return {
+    rows: [
+      { label: '親から',     amount: fromDealer, count: 1 },
+      { label: '子 2人から', amount: fromChild,  count: 2 }
+    ],
+    total: fromDealer + fromChild * 2
+  };
+}
+
+/* ---------------------------------------------------------
+   3. 支払額を点棒の組み合わせに分解する（大きい額から順に使う）
+   --------------------------------------------------------- */
+const DENOMINATIONS = [10000, 5000, 1000, 500, 100];
+
+function toSticks(amount) {
+  const result = [];
+  let rest = amount;
+  for (const value of DENOMINATIONS) {
+    const count = Math.floor(rest / value);
+    if (count > 0) result.push({ value: value, count: count });
+    rest = rest % value;
+  }
+  return result;
+}
+
+/* ---------------------------------------------------------
+   4. 入力の組み合わせが実戦で起こりうるかを判定する
+   --------------------------------------------------------- */
+function validate(han, fu, isTsumo) {
+  if (han >= 5) return '';
+  if (fu === 20 && !isTsumo) return '20符は平和ツモのみ。ロンでは発生しません。';
+  if (fu === 20 && han === 1) return '20符1翻は成立しません（平和ツモは必ず2翻以上）。';
+  if (fu === 25 && han === 1) return '25符1翻は成立しません（七対子は最低2翻）。';
+  if (fu === 25 && han === 2 && !isTsumo) return '';
+  return '';
+}
+
+// ---- 描画 ----------------------------------------------------
+
+function buildTiles(container, values, key, suffix) {
+  container.innerHTML = '';
+  values.forEach((value) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tile-btn';
+    btn.textContent = (key === 'han' && value === 13) ? '13+' : value;
+    btn.setAttribute('aria-label', value + suffix);
+    btn.setAttribute('aria-pressed', String(state[key] === value));
+    btn.addEventListener('click', () => {
+      state[key] = value;
+      refresh();
+    });
+    container.appendChild(btn);
+  });
+}
+
+function syncPressed(container, key) {
+  container.querySelectorAll('.tile-btn').forEach((btn, i) => {
+    const values = (key === 'han') ? HAN_LIST : FU_LIST;
+    btn.setAttribute('aria-pressed', String(state[key] === values[i]));
+  });
+}
+
+function stickMarkup(sticks) {
+  return sticks.map((s) => {
+    const dots = '<i></i>'.repeat(Math.min(s.count, 6));
+    return '<span class="stick s' + s.value + '" title="' +
+           s.value + '点棒 ' + s.count + '本">' + dots + '</span>';
+  }).join('');
+}
+
+function refresh() {
+  syncPressed(document.getElementById('hanTiles'), 'han');
+  syncPressed(document.getElementById('fuTiles'), 'fu');
+
+  // 5翻以上は符を使わないので、符の選択肢を薄く表示する
+  const fuUnused = state.han >= 5;
+  document.getElementById('fuTiles').classList.toggle('is-muted', fuUnused);
+  document.getElementById('fuHint').textContent = fuUnused ? '5翻以上は符を使いません' : 'FU';
+
+  const { base, rank, raw } = calcBase(state.han, state.fu, state.kiriage);
+  const payment = calcPayment(base, state.isDealer, state.isTsumo);
+
+  document.getElementById('rank').textContent = rank;
+  document.getElementById('total').textContent = payment.total.toLocaleString();
+
+  // 計算式の表示（満貫以上で頭打ちになった場合はその旨も出す）
+  const formulaEl = document.getElementById('formula');
+  if (raw === null) {
+    formulaEl.textContent = state.han + '翻 → 基礎点 ' + base.toLocaleString();
+  } else if (raw !== base) {
+    formulaEl.textContent = state.fu + '符 × 2^(2+' + state.han + ') = ' +
+      raw.toLocaleString() + ' → 頭打ち ' + base.toLocaleString();
+  } else {
+    formulaEl.textContent = state.fu + '符 × 2^(2+' + state.han + ') = 基礎点 ' + base.toLocaleString();
+  }
+
+  // 支払いの内訳と点棒
+  document.getElementById('rows').innerHTML = payment.rows.map((row) => {
+    const label = row.count > 1
+      ? row.label + '　' + row.amount.toLocaleString() + ' ×' + row.count
+      : row.label + '　' + row.amount.toLocaleString();
+    return '<div class="row">' +
+             '<span class="row-label">' + row.label + '</span>' +
+             '<span class="sticks">' + stickMarkup(toSticks(row.amount)) + '</span>' +
+             '<span class="row-amount">' + row.amount.toLocaleString() +
+               (row.count > 1 ? ' <span style="font-size:12px">×' + row.count + '</span>' : '') +
+             '</span>' +
+           '</div>';
+  }).join('');
+
+  document.getElementById('note').textContent = validate(state.han, state.fu, state.isTsumo);
+}
+
+// ---- 初期化 --------------------------------------------------
+
+buildTiles(document.getElementById('hanTiles'), HAN_LIST, 'han', '翻');
+buildTiles(document.getElementById('fuTiles'), FU_LIST, 'fu', '符');
+
+document.getElementById('seatToggle').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  state.isDealer = btn.dataset.value === 'dealer';
+  document.querySelectorAll('#seatToggle button').forEach((b) => {
+    b.setAttribute('aria-pressed', String(b === btn));
+  });
+  refresh();
+});
+
+document.getElementById('winToggle').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  state.isTsumo = btn.dataset.value === 'tsumo';
+  document.querySelectorAll('#winToggle button').forEach((b) => {
+    b.setAttribute('aria-pressed', String(b === btn));
+  });
+  refresh();
+});
+
+document.getElementById('kiriage').addEventListener('change', (e) => {
+  state.kiriage = e.target.checked;
+  refresh();
+});
+
+refresh();
+</script>
+</body>
+</html>
