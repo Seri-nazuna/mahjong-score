@@ -326,7 +326,7 @@ function calcPayment(base, isDealer, isTsumo) {
 /* ---------------------------------------------------------
    3. 支払額を点棒の組み合わせに分解する（大きい額から順に使う）
    --------------------------------------------------------- */
-const DENOMINATIONS = [10000, 5000, 1000, 500, 100];
+const DENOMINATIONS = [10000, 5000, 1000, 100];  // 五百点棒は使わず、百点棒で払う
 
 function toSticks(amount) {
   const result = [];
@@ -381,7 +381,6 @@ function syncPressed(container, key) {
 const BLACK = '#1d1d1b', RED = '#c8352a', DARK_RED = '#8e1b1b';
 const STICK_DOTS = {
   100:   [51, 57, 63, 69].flatMap((x) => [[x, 6.5, 2, BLACK], [x, 13.5, 2, BLACK]]),
-  500:   [[60, 10, 2.8, RED], [51, 10, 2, BLACK], [69, 10, 2, BLACK]],
   1000:  [[60, 10, 3, RED]],
   5000:  [[60, 10, 3, RED], [53, 5, 2, DARK_RED], [67, 5, 2, DARK_RED], [53, 15, 2, DARK_RED], [67, 15, 2, DARK_RED]],
   10000: [[42, 10, 2.8, BLACK], [78, 10, 2.8, BLACK], [60, 10, 2.6, BLACK],
