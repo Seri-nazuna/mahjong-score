@@ -146,12 +146,7 @@
     font-variant-numeric: tabular-nums;
   }
   .total-unit { font-size: 20px; margin-left: 4px; }
-  .formula {
-    font-size: 11px;
-    color: var(--ink-soft);
-    font-variant-numeric: tabular-nums;
-    margin-bottom: 18px;
-  }
+  .rows { margin-top: 18px; }
 
   .rows { border-top: 1px solid var(--tile-edge); }
   .row {
@@ -256,7 +251,6 @@
   <section class="result" aria-live="polite">
     <div class="rank" id="rank"></div>
     <div class="total"><span id="total">0</span><span class="total-unit">点</span></div>
-    <div class="formula" id="formula"></div>
     <div class="rows" id="rows"></div>
     <p class="note" id="note"></p>
   </section>
@@ -267,7 +261,7 @@
   </div>
 
   <footer>
-    基礎点 = 符 × 2<sup>(2+翻)</sup> ／ 支払いは100点単位で切り上げ<br>
+    13翻以上は数え役満として扱います<br>
     リーチ棒・本場・積み棒は含みません
   </footer>
 
@@ -418,22 +412,11 @@ function refresh() {
   document.getElementById('fuTiles').classList.toggle('is-muted', fuUnused);
   document.getElementById('fuHint').textContent = fuUnused ? '5翻以上は符を使いません' : 'FU';
 
-  const { base, rank, raw } = calcBase(state.han, state.fu, state.kiriage);
+  const { base, rank } = calcBase(state.han, state.fu, state.kiriage);
   const payment = calcPayment(base, state.isDealer, state.isTsumo);
 
   document.getElementById('rank').textContent = rank;
   document.getElementById('total').textContent = payment.total.toLocaleString();
-
-  // 計算式の表示（満貫以上で頭打ちになった場合はその旨も出す）
-  const formulaEl = document.getElementById('formula');
-  if (raw === null) {
-    formulaEl.textContent = state.han + '翻 → 基礎点 ' + base.toLocaleString();
-  } else if (raw !== base) {
-    formulaEl.textContent = state.fu + '符 × 2^(2+' + state.han + ') = ' +
-      raw.toLocaleString() + ' → 頭打ち ' + base.toLocaleString();
-  } else {
-    formulaEl.textContent = state.fu + '符 × 2^(2+' + state.han + ') = 基礎点 ' + base.toLocaleString();
-  }
 
   // 支払いの内訳と点棒
   document.getElementById('rows').innerHTML = payment.rows.map((row) => {
