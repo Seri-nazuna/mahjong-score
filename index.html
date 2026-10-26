@@ -161,28 +161,24 @@
   .row-label { font-size: 13px; color: var(--ink-soft); white-space: nowrap; }
   .row-amount { font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
-  /* 点棒 */
-  .sticks { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; flex: 1; }
+  /* 点棒：額面を書いた棒と本数 */
+  .sticks { display: flex; flex-wrap: wrap; gap: 4px 8px; justify-content: flex-end; flex: 1; }
+  .stick-group { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: var(--ink-soft); white-space: nowrap; }
   .stick {
-    height: 13px;
-    border-radius: 2px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 2px;
-    border: 1px solid rgba(0,0,0,0.22);
+    height: 16px;
+    padding: 0 6px;
+    border-radius: 3px;
+    background: #fff;
+    border: 1px solid #b9b09a;
+    color: var(--ink);
+    font-size: 10px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
   }
-  .stick i { width: 3px; height: 3px; border-radius: 50%; display: block; }
-  .s10000 { width: 52px; background: var(--gold); }
-  .s10000 i { background: #2b2b2b; }
-  .s5000  { width: 44px; background: #3a4f7a; }
-  .s5000 i { background: #f0e6cf; }
-  .s1000  { width: 36px; background: #f7f3e8; }
-  .s1000 i { background: var(--vermilion); }
-  .s500   { width: 28px; background: #f7f3e8; }
-  .s500 i { background: #3a4f7a; }
-  .s100   { width: 22px; background: #f7f3e8; }
-  .s100 i { background: #2b2b2b; }
 
   .note {
     margin-top: 14px;
@@ -396,11 +392,11 @@ function syncPressed(container, key) {
 }
 
 function stickMarkup(sticks) {
-  return sticks.map((s) => {
-    const dots = '<i></i>'.repeat(Math.min(s.count, 6));
-    return '<span class="stick s' + s.value + '" title="' +
-           s.value + '点棒 ' + s.count + '本">' + dots + '</span>';
-  }).join('');
+  return sticks.map((s) =>
+    '<span class="stick-group" title="' + s.value + '点棒 ' + s.count + '本">' +
+      '<span class="stick">' + s.value + '</span>×' + s.count +
+    '</span>'
+  ).join('');
 }
 
 function refresh() {
