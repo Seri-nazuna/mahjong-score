@@ -161,24 +161,10 @@
   .row-label { font-size: 13px; color: var(--ink-soft); white-space: nowrap; }
   .row-amount { font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
-  /* 点棒：額面を書いた棒と本数 */
-  .sticks { display: flex; flex-wrap: wrap; gap: 4px 8px; justify-content: flex-end; flex: 1; }
-  .stick-group { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: var(--ink-soft); white-space: nowrap; }
-  .stick {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    height: 16px;
-    padding: 0 6px;
-    border-radius: 3px;
-    background: #fff;
-    border: 1px solid #b9b09a;
-    color: var(--ink);
-    font-size: 10px;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.02em;
-  }
+  /* 点棒：実物の模様を描いた棒と本数 */
+  .sticks { display: flex; flex-wrap: wrap; gap: 6px 10px; justify-content: flex-end; flex: 1; }
+  .stick-group { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
+  .stick { display: block; width: 66px; height: 12px; filter: drop-shadow(0 1px 0 rgba(0,0,0,0.18)); }
 
   .note {
     margin-top: 14px;
@@ -391,10 +377,31 @@ function syncPressed(container, key) {
   });
 }
 
+// 点棒の模様（viewBox 120×20 の座標で、[x, y, 半径, 色] を並べる）
+const BLACK = '#1d1d1b', RED = '#c8352a', DARK_RED = '#8e1b1b';
+const STICK_DOTS = {
+  100:   [51, 57, 63, 69].flatMap((x) => [[x, 6.5, 2, BLACK], [x, 13.5, 2, BLACK]]),
+  500:   [[60, 10, 2.8, RED], [51, 10, 2, BLACK], [69, 10, 2, BLACK]],
+  1000:  [[60, 10, 3, RED]],
+  5000:  [[60, 10, 3, RED], [53, 5, 2, DARK_RED], [67, 5, 2, DARK_RED], [53, 15, 2, DARK_RED], [67, 15, 2, DARK_RED]],
+  10000: [[42, 10, 2.8, BLACK], [78, 10, 2.8, BLACK], [60, 10, 2.6, BLACK],
+          [51, 10, 1.8, RED], [69, 10, 1.8, RED], [55.5, 4.5, 1.8, RED], [64.5, 4.5, 1.8, RED],
+          [55.5, 15.5, 1.8, RED], [64.5, 15.5, 1.8, RED]]
+};
+
+function stickSvg(value) {
+  const dots = STICK_DOTS[value].map(([x, y, r, c]) =>
+    '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + c + '"/>').join('');
+  return '<svg class="stick" viewBox="0 0 120 20" aria-hidden="true">' +
+           '<rect x="0.75" y="0.75" width="118.5" height="18.5" rx="4" fill="#fff" stroke="#b9b09a" stroke-width="1.5"/>' +
+           dots +
+         '</svg>';
+}
+
 function stickMarkup(sticks) {
   return sticks.map((s) =>
     '<span class="stick-group" title="' + s.value + '点棒 ' + s.count + '本">' +
-      '<span class="stick">' + s.value + '</span>×' + s.count +
+      stickSvg(s.value) + '×' + s.count +
     '</span>'
   ).join('');
 }
